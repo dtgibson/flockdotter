@@ -1,0 +1,197 @@
+{
+  "contract_version": 1,
+  "contract_id": "countgd-cpu-fp32-detail400-depth1-prototype-v1",
+  "status": "conditional_prototype_only_not_production_acceptance",
+  "scope": "Offline bounded complete-scan/review prototype; no FR-18–21 acceptance, full-photo quality, human-time or platform-resource claim.",
+  "model": {
+    "package": "pipeline/automatic-bird-detection/feasibility/counting-models/native/CountGDFixedBird800ValidMaxFP32.mlpackage",
+    "package_bytes": 540953605,
+    "files": [
+      {
+        "path": "Data/com.apple.CoreML/model.mlmodel",
+        "bytes": 1452252,
+        "sha256": "f6b855fc50f09946cd729baf872d0ea16b4856012bbaadeb02f7c597ce02e70e"
+      },
+      {
+        "path": "Data/com.apple.CoreML/weights/weight.bin",
+        "bytes": 539500736,
+        "sha256": "a3e4fca75edf170997708921427f774f902ee4fe472dbe49e92073d79ce4a159"
+      },
+      {
+        "path": "Manifest.json",
+        "bytes": 617,
+        "sha256": "61eb37008e84449018aa93d05d830167ca4779e546481bb5b7a87fe19759870a"
+      }
+    ],
+    "package_tree_sha256": "0bf005710150e5a0b1f406fac13804a59e933f26fe941cd6dc02af027eaf3047",
+    "precision": "FP32",
+    "compute_units": "CPU_ONLY",
+    "format": "MLProgram",
+    "deployment_specification": {
+      "iOS": "17.0",
+      "iPadOS": "17.0",
+      "macOS": "14.0"
+    },
+    "compiled_bytes_observed_host": 541432580,
+    "compiled_identity": "Host/compiler-dependent; not portable package identity.",
+    "tree_hash_algorithm": "SHA256(json.dumps(sorted file records by path, sort_keys=True, separators=(comma,colon)).encode(UTF-8)); records contain path,bytes,sha256; excludes directories.",
+    "author_weights_sha256": "7e3baed25e5299034301b00c2647fb23503dd306c468259114a4957198424e4c",
+    "weights_revision": "nikigoli/CountGD@6b989ad11db9413e44863ea5c57735cae6cacff8",
+    "executed_source_revision": "nikigoli/countgd@6e82e59569a84ee5c6aafa35d396f2d2bee57be2",
+    "github_revision": "niki-amini-naieni/CountGD@b6f362b3f5cd20db4a171faa410dfed8f2f466d8",
+    "prompt_literal": "bird .",
+    "valid_text_tokens": 4,
+    "visual_exemplars": false,
+    "input": {
+      "name": "image",
+      "shape": [
+        1,
+        3,
+        800,
+        800
+      ],
+      "dtype": "float32",
+      "layout": "NCHW",
+      "color": "RGB",
+      "range_before_normalization": [
+        0,
+        1
+      ],
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ],
+      "padding_rgb": [
+        0,
+        0,
+        0
+      ],
+      "padding_semantics": "Black pixel values normalized like all RGB pixels; no additional internal model padding mask."
+    },
+    "outputs": {
+      "boxes": {
+        "shape": [
+          1,
+          900,
+          4
+        ],
+        "dtype": "float32",
+        "order": "cx,cy,width,height; normalized model edge coordinates"
+      },
+      "logits": {
+        "shape": [
+          1,
+          900,
+          256
+        ],
+        "dtype": "float32",
+        "valid_tokens": 4,
+        "tail": "252 masked negative logits; negative infinity or finite negative sentinel allowed; NaN/+infinity forbidden."
+      },
+      "bytes_per_prediction": 936000
+    },
+    "score": "maximum sigmoid over the four valid text-token logits; score strictly greater than0.23; no user slider; proposal maximum inside converted graph is also over these four tokens."
+  },
+  "scan": {
+    "root_context_source_pixels": 400,
+    "root_stride_source_pixels": 200,
+    "root_starts": "For each positive upright dimension L: [0] when L<=400; otherwise unique ascending 0,200,...<=L-400 plus L-400. Always400 logical context; black fill outside source when L<400.",
+    "root_ownership": "Axis context centers=start+200. Boundaries=[0]+midpoints of adjacent centers+[L]. Cartesian cells partition source exactly, half-open [left,right)x[top,bottom). Row-major y then x. Do not round boundaries.",
+    "scheduling": "Root row-major; saturated owners enqueue four child quadrants row-major, breadth-first by root order. Batch1, serial prediction; one queued descriptor, no decoded crop queue.",
+    "saturation": "Exactly900 raw queries with score>0.23 BEFORE coordinate/content/ownership filtering; drop ALL rows from saturated parent owner, including provisionally valid centers.",
+    "recovery": {
+      "max_depth": 1,
+      "child_ownership": "Four equal half-open quadrants exactly partition parent owner; fractional bounds preserved, no clipping/rounding.",
+      "child_context": "Logical rectangle exactly2x child-owner width and2x child-owner height centered on child. Uniform fit to800square using side=max(logical width,height); black outside exact logical rectangle and outside source.",
+      "min_context_side": 200,
+      "max_context_side": 400,
+      "side_interpretation": "Maximum logical dimension. Interior parent200px owners yield100px child owners/200px contexts. Outer parent owners can be300px wide and produce300px contexts; not all children are200px.",
+      "terminal": "Saturated child, side outside bounds, unrepresentable/invalid geometry or inability to admit all four children fails entire run; no second subdivision."
+    },
+    "rasterization": "Square integer logical contexts: bilinear source crop enlarged uniformly to800, with black source-border fill. Rectangular/fractional: center logical rect on virtual square, mask source pixel centers outside exact logical rect, bilinear pixel-center sampling and output logical-content mask. Native implementation must verify against retained research input pixels/geometry; geometry contract is not measured native parity.",
+    "inverse_geometry": "Let virtual square origin=(sl,st), side=S. Model normalized box maps center=(sl+cx*S,st+cy*S), extent=(w*S,h*S) in Double upright source pixels. No half-pixel point shift, box clipping or center clamp. Retain only valid centers inside source AND node ownership; no pixels outside logical context count as content.",
+    "reconciliation": "Ownership only. No NMS, within-pass suppression, radius cluster, coordinate averaging, overview pass or cross-scale union. Remaining duplicates are reviewable; large-bird fragmentation is unvalidated.",
+    "near_committed_marker": "Advisory only: radius=max(2,min(12,0.25*min(sourceBoxWidth,sourceBoxHeight))) source pixels; nearest marker within inclusive radius wins, lower current label breaks exact tie. Start excluded but retain for deliberate inclusion.",
+    "temporary_id": [
+      "contract_sha256",
+      "run_uuid",
+      "root_index_and_child_quadrant_path",
+      "query_index"
+    ],
+    "apply_order": [
+      "normalized_y",
+      "normalized_x",
+      "temporary_id"
+    ],
+    "apply": "Generate fresh ordinary marker UUIDs once; one atomic ApplyBatch history/recovery transaction; no detector provenance persisted."
+  },
+  "limits": {
+    "source_pixels": 24000000,
+    "source_side": 8192,
+    "source_bytes": 268435456,
+    "manual_source_limits_unchanged": "64MP/32768side/256MiB",
+    "max_total_predictions_including_discarded_parents": 20,
+    "root_preflight": "Reject >20 roots before model load. Before each recovery admit all four children only if executed+remaining planned predictions+4<=20; otherwise fail all.",
+    "max_raw_above_threshold_candidates_including_discarded_parents": 50000,
+    "max_preview_suggestions": 10000,
+    "max_committed_markers": 100000,
+    "batch": 1,
+    "concurrency": 1,
+    "queued_descriptors": 1,
+    "deadline_seconds_from_accepted_start_through_publish": 60,
+    "provisional_resource_limits_not_shipping_approval": {
+      "bundle_MiB": 600,
+      "compiled_MiB": 650,
+      "free_cache_reservation_MiB": 1536,
+      "estimated_incremental_preflight_MiB": 1536,
+      "runtime_resident_growth_guard_MiB": 2048,
+      "available_memory_headroom_MiB": 2560,
+      "decoder_bytes_per_source_pixel_allowance": 8
+    },
+    "provisional_time_estimate": {
+      "seconds_per_prediction": 2,
+      "compile_load_prepare_reserve_seconds": 8,
+      "postprocess_publish_reserve_seconds": 10,
+      "maximum_estimate_seconds": 58,
+      "measured_guarantee": false
+    }
+  },
+  "failure_contract": {
+    "all_or_nothing": true,
+    "failures": [
+      "terminal saturation",
+      "unresolved owner",
+      "root or recovery call budget",
+      "deadline",
+      "candidate/preview/history capacity",
+      "resource preflight or runtime memory pressure",
+      "load/compile/prediction failure",
+      "malformed shape or dtype or unsafe tensor count",
+      "NaN or positive-infinite logits or uninterpretable scores",
+      "above-threshold invalid/nonfinite box, nonpositive extent or invalid model center",
+      "source identity or run key mismatch",
+      "cancel/edit/replacement/background invalidation"
+    ],
+    "effect": "No eligible preview, complete suggestion total or history/count mutation. Diagnostics may retain incomplete data clearly marked ineligible. A complete zero requires every ownership cell resolved and every run/key/resource/deadline check valid.",
+    "cancellation": "Immediately revoke publication eligibility; synchronous Core ML may continue until return. Keep sole serial owner/source lease until drained; block retry model ownership until cleanup. Manual committed count remains usable."
+  },
+  "open_acceptance": [
+    "fresh FR-18–21 screen and baseline",
+    "whole-photo scale/seam/neighbor/large-bird quality",
+    "real native complete scan under60s",
+    "clean FP32 app CPU high-water and cold/warm resource measurements",
+    "cancel/resource reclamation and pressure behavior",
+    "iOS/iPadOS simulator and minimum-OS runtime",
+    "Intel runtime and universal Mac build",
+    "actual manual vs detection+review completion time and correction actions",
+    "final exact redistribution notices and training-provenance treatment"
+  ],
+  "designer_evidence": "Use actual retained suggestions only, labeled with source SHA256, source/native configuration, ROI/full-scan scope and completeness. Recorded research outputs cannot imply an eligible live scan or enable complete Apply; no fabricated verified totals or human-time results.",
+  "notices_requirements": "prototype-notices-requirements.md"
+}

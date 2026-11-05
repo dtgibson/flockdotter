@@ -1,0 +1,116 @@
+{
+  "scope": "Exact copied primary grants/cards and retained source headers for selected graph; not universal legal certification",
+  "copied_sources": [
+    {
+      "file": "countgd-license.txt",
+      "sha256": "d63465a8cff032d79b003af38037961bf2a79e8dda4f5c1a02ffc5500ec72c81",
+      "bytes": 1074,
+      "url": "https://raw.githubusercontent.com/niki-amini-naieni/CountGD/b6f362b3f5cd20db4a171faa410dfed8f2f466d8/LICENSE",
+      "retrieved_utc": "2026-10-29T23:47:03.118988+00:00"
+    },
+    {
+      "file": "countgd-model-readme.md",
+      "sha256": "d5f5ea964e50fd725450bd5e3cde29524dd1f062b8538070acb13b67ff1d334e",
+      "bytes": 1049,
+      "url": "https://huggingface.co/nikigoli/CountGD/raw/6b989ad11db9413e44863ea5c57735cae6cacff8/README.md",
+      "retrieved_utc": "2026-10-29T23:47:44.383577+00:00"
+    },
+    {
+      "file": "groundingdino-license.txt",
+      "sha256": "b403c98ec1ffaccb0124632592a3d99642cddc3031ca412b402568e6c06c202a",
+      "bytes": 11355,
+      "url": "https://raw.githubusercontent.com/IDEA-Research/GroundingDINO/856dde20aee659246248e20734ef9ba5214f5e44/LICENSE",
+      "retrieved_utc": "2026-10-29T23:47:44.523335+00:00"
+    },
+    {
+      "file": "groundingdino-hf-readme.md",
+      "sha256": "dbf6d4c4cbd366d530bb357625b5692357de25d82f5c209643859db252a15760",
+      "bytes": 922,
+      "url": "https://huggingface.co/ShilongLiu/GroundingDINO/raw/a94c9b567a2a374598f05c584e96798a170c56fb/README.md",
+      "retrieved_utc": "2026-10-29T23:48:32.976028+00:00"
+    },
+    {
+      "file": "swin-license.txt",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+      "bytes": 1141,
+      "url": "https://raw.githubusercontent.com/microsoft/Swin-Transformer/f82860bfb5225915aca09c3227159ee9e1df874d/LICENSE",
+      "retrieved_utc": "2026-10-29T23:48:32.939827+00:00"
+    },
+    {
+      "file": "open-groundingdino-license.txt",
+      "sha256": "fca791f5cc984d858dc9e546a6f6943425219e2e566c9c7f87e169d951cc5f55",
+      "bytes": 1067,
+      "url": "https://raw.githubusercontent.com/longzw1997/Open-GroundingDino/d248268ac9cab808d4aa2691f4a76972ec5d9ab4/LICENSE",
+      "retrieved_utc": "2026-10-29T23:47:44.567946+00:00"
+    },
+    {
+      "file": "bert-license.txt",
+      "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+      "bytes": 11356,
+      "url": "https://huggingface.co/google-bert/bert-base-uncased/raw/86b5e0934494bd15c9632b12f734a8a67f723594/LICENSE",
+      "retrieved_utc": "2026-10-29T23:47:24.258976+00:00"
+    },
+    {
+      "file": "bert-readme.md",
+      "sha256": "9187b6018ea0010d884e78e098e328faa1b88b301570d0cce606bb35e4067e17",
+      "bytes": 10517,
+      "url": "https://huggingface.co/google-bert/bert-base-uncased/raw/86b5e0934494bd15c9632b12f734a8a67f723594/README.md",
+      "retrieved_utc": "2026-10-29T23:47:24.259308+00:00"
+    },
+    {
+      "file": "bert-google-readme.md",
+      "sha256": "43b560935cfaef7427ae15d5c2c089b46d857e9e51fce5f20c93a9a74f99b756",
+      "bytes": 50519,
+      "url": "https://raw.githubusercontent.com/google-research/bert/master/README.md",
+      "retrieved_utc": "2026-10-29T23:48:33.131059+00:00"
+    }
+  ],
+  "pinned_upstream_notice_inventory": [
+    {
+      "repo": "IDEA-Research/GroundingDINO",
+      "pin": "856dde20aee659246248e20734ef9ba5214f5e44",
+      "url": "https://api.github.com/repos/IDEA-Research/GroundingDINO/git/trees/856dde20aee659246248e20734ef9ba5214f5e44?recursive=1",
+      "status": "retrieved",
+      "sha256": "9fecbc08ed3555231f88c13c09a5fe176dcef26c34cf0b7b432c493cf8e72589",
+      "truncated": false,
+      "notice_paths": []
+    },
+    {
+      "repo": "microsoft/Swin-Transformer",
+      "pin": "f82860bfb5225915aca09c3227159ee9e1df874d",
+      "url": "https://api.github.com/repos/microsoft/Swin-Transformer/git/trees/f82860bfb5225915aca09c3227159ee9e1df874d?recursive=1",
+      "status": "retrieved",
+      "sha256": "fef9fcf42557bf1ae9221b9c37b1519c0d8760e1ddd3cdf6ab7a1f02def5d737",
+      "truncated": false,
+      "notice_paths": []
+    },
+    {
+      "repo": "longzw1997/Open-GroundingDino",
+      "pin": "d248268ac9cab808d4aa2691f4a76972ec5d9ab4",
+      "url": "https://api.github.com/repos/longzw1997/Open-GroundingDino/git/trees/d248268ac9cab808d4aa2691f4a76972ec5d9ab4?recursive=1",
+      "status": "retrieved",
+      "sha256": "3cb9d85fecfc98d3648c8610c3450e8eac5ea35c79df13446bb3ed2a7d69b2d8",
+      "truncated": false,
+      "notice_paths": []
+    },
+    {
+      "repo": "google-research/bert",
+      "pin": "eedf5716ce1268e56f0a50264a88cafad334ac61",
+      "url": "https://api.github.com/repos/google-research/bert/git/trees/eedf5716ce1268e56f0a50264a88cafad334ac61?recursive=1",
+      "status": "retrieved",
+      "sha256": "7f4f8eefe1b2c4aad9cea934c7203f51c6886d140eadd515987ad2b98402d21a",
+      "truncated": false,
+      "notice_paths": []
+    }
+  ],
+  "local_selected_source_notice_inventory": [
+    {
+      "source": "CountGD-b6f362b3f5cd20db4a171faa410dfed8f2f466d8",
+      "notice_paths": []
+    },
+    {
+      "source": "CountGD-Space-6e82e59569a84ee5c6aafa35d396f2d2bee57be2",
+      "notice_paths": []
+    }
+  ]
+}

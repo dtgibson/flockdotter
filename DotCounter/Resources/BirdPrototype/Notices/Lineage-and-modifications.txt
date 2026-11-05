@@ -1,0 +1,18 @@
+Flock Dotter — modified local bird detector, experimental public candidate
+
+Selected graph: CountGDFixedBird800ValidMaxFP32.mlpackage; 540,953,605 bytes.
+Graph package tree SHA256: 0bf005710150e5a0b1f406fac13804a59e933f26fe941cd6dc02af027eaf3047
+Frozen prototype contract SHA256: 4f12f9d9580589967010a96610ce926c8fa8d37d78c8082f68629a1b36b1e5c6
+Retained execution policy: owner-beta-runtime-v1; simulator metric: simulator-host-headroom-v1. The historical policy name is a safety-contract identifier, not a public-readiness or channel-approval claim.
+
+CountGD author weights: nikigoli/CountGD revision6b989ad11db9413e44863ea5c57735cae6cacff8, model.safetensors; SHA2567e3baed25e5299034301b00c2647fb23503dd306c468259114a4957198424e4c. The exact model card below declares MIT. Code copyright2024 Niki Amini-Naieni, MIT full text retained.
+Executed author Space source: nikigoli/countgd revision6e82e59569a84ee5c6aafa35d396f2d2bee57be2. CountGD GitHub reference source: niki-amini-naieni/CountGD revisionb6f362b3f5cd20db4a171faa410dfed8f2f466d8.
+Inherited GroundingDINO model/source grant is Apache-2.0; source reference856dde20aee659246248e20734ef9ba5214f5e44 and author model card ShilongLiu/GroundingDINO revisiona94c9b567a2a374598f05c584e96798a170c56fb are retained. This does not assert that a separate initialization checkpoint is packaged.
+BERT-derived fixed text constants retain Apache-2.0 provenance. Model/tokenizer lineage google-bert/bert-base-uncased revision86b5e0934494bd15c9632b12f734a8a67f723594; Google's original code/models grant and model card are retained. Removing executable BERT layers does not erase that provenance.
+Inherited Grounding DINO/IDEA2023, Conditional DETR/Microsoft2021, DINO/IDEA2022, DETR/Facebook and affiliates, Deformable DETR/SenseTime2020 and OpenMMLab source references are preserved verbatim below; applicable Apache text retained. Upstream Swin/Microsoft MIT and Open-GroundingDino/longzw1997 MIT full notices retained.
+
+This graph is modified: guarded CPU extension import; cached exact bird-text/projection/mask/position constants; rank-at-most-five deformable-attention rewrite; padding concatenation; proposal maximum restricted to four actual text tokens; fixed800 FP32 Core ML conversion. Flock Dotter supplies a native RGB sampler/EXIF/tiling geometry port, with characterized ImageIO/Pillow differences; this is not the original author's unmodified executable or a certified equivalent. Runtime uses CPU_ONLY. Sources and model cards are reproduced below for attribution, not fetched when detection runs.
+
+No Python runtime, PyTorch/timm/transformers executables, custom C++ attention library, optional SAM, extra checkpoints, research photographs or datasets are packaged with this detector. Native app dependencies are Apple system frameworks and the local DotCounterCore module. Other app font notices remain alongside their fonts.
+
+The explicit MIT/Apache declarations are retained; this project makes no legal certification of all historical training photographs/datasets. Objects365, FSC-147 and other upstream training-data provenance remain disclosed uncertainty. No research/training images are distributed. Public distribution rights, runtime safety and actual detector quality are separate from these license notices; independent security review and release signoff still apply.

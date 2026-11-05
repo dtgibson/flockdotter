@@ -1,0 +1,19 @@
+Flock Dotter
+Copyright (C) 2026 Dave Gibson and the respective credited rights holders.
+
+First-party application and core source, tests, build scripts, documentation
+and original app artwork in this distribution are licensed under the GNU
+Affero General Public License, version 3 only (AGPL-3.0-only), except where an
+individual file or the third-party notices state another license. See LICENSE
+for the complete unmodified license. There is no App Store exception or
+separate distribution grant in this notice.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for details.
+
+Third-party model material, fonts and photographs retain their own copyrights,
+licenses and notices. See THIRD_PARTY_NOTICES.md and the full texts in
+DotCounter/Resources/BirdPrototype/Notices and DotCounter/Resources/Fonts.
+This first-party grant does not relicense those materials or grant rights in
+user-selected photographs. Source: https://github.com/dtgibson/flockdotter
