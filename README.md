@@ -2,7 +2,9 @@
 
 Flock Dotter is a native app for counting birds in one still photo. Add visible marks, correct them with Undo/Redo, and keep an editable count with the unchanged original photo. Optional experimental **Detect birds** runs locally and proposes marks for review. It can fail, miss birds or suggest false positives; you check every result and manual counting remains available.
 
-The public iPhone/iPad release is being prepared. This source tree and its documentation do not announce App Store availability or certify release readiness. The intended price is free, with no in-app purchases. Public binary distribution remains subject to the [rights review](docs/public/rights-review.md) and final release checks.
+A signed and notarized native Mac download is available in [GitHub Releases](https://github.com/dtgibson/flockdotter/releases/tag/v1.0-mac-build9) for macOS 14 or later, with Apple Silicon and Intel code. Download `Flock-Dotter-1.0-build-9-macOS-universal.zip`, extract it and move **Flock Dotter.app** to Applications. The release includes checksums and matching source with the full model. Intel execution and minimum-version runtime have not been verified.
+
+The iPhone/iPad build is awaiting Apple review with manual release control. This source tree and its documentation do not announce App Store availability or certify release readiness. The intended price is free, with no in-app purchases. Public binary distribution remains subject to the [rights review](docs/public/rights-review.md) and final release checks.
 
 ## What it does
 
@@ -19,11 +21,11 @@ A running total records your marks; it is not a certified bird count. The app do
 
 No app account, backend, advertising, tracking or analytics service is used. Processing is local. System Photos/Files providers and destinations may use their own cloud services. Recovery holds one workspace; export JSON **and the exact original photo** before replacing it. An edited or recompressed photo will not reopen an existing count. Clearing removes app-local recovery, leaving originals and exports alone. Undo history does not survive relaunch.
 
-Read the [privacy policy](docs/public/privacy.md) and [support guide](docs/public/support.md). The prepared source/privacy/support links become generally reachable only after authorized repository publication; authenticated access is not public access.
+Read the [privacy policy](docs/public/privacy.md) and [support guide](docs/public/support.md). Source, privacy and support documents are publicly available in this repository.
 
 ## Build from source
 
-The app uses Swift 6, SwiftUI, native UIKit/AppKit canvas adapters, Apple system frameworks and the local `DotCounterCore` package. Technical project, executable and bundle identifiers retain the name DotCounter. Minimum targets are iOS/iPadOS 17 and macOS 14; modern-SDK compilation does not establish minimum-version or Intel runtime behavior. This release preparation covers iPhone/iPad, not public Mac distribution.
+The app uses Swift 6, SwiftUI, native UIKit/AppKit canvas adapters, Apple system frameworks and the local `DotCounterCore` package. Technical project, executable and bundle identifiers retain the name DotCounter. Minimum targets are iOS/iPadOS 17 and macOS 14; modern-SDK compilation does not establish minimum-version or Intel runtime behavior. The native Mac download is distributed directly through GitHub Releases; it is separate from the iPhone/iPad App Store submission.
 
 Use a development Mac with Xcode 27.1, Swift 6.4, XcodeGen and Git LFS. Obtain the exact model bytes with `git lfs pull`; a pointer-only source ZIP is insufficient. See [BUILDING.md](docs/public/BUILDING.md) for complete commands, model identity, tests, signing boundaries and model-conversion reproduction limits.
 
