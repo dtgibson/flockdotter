@@ -4,7 +4,7 @@ Flock Dotter is a native app for counting birds in one still photo. Add visible 
 
 A signed and notarized native Mac download is available in [GitHub Releases](https://github.com/dtgibson/flockdotter/releases/tag/v1.0-mac-build9) for macOS 14 or later, with Apple Silicon and Intel code. Download `Flock-Dotter-1.0-build-9-macOS-universal.zip`, extract it and move **Flock Dotter.app** to Applications. The release includes checksums and matching source with the full model. Intel execution and minimum-version runtime have not been verified.
 
-The iPhone/iPad build is awaiting Apple review with manual release control. This source tree and its documentation do not announce App Store availability or certify release readiness. The intended price is free, with no in-app purchases. Public binary distribution remains subject to the [rights review](docs/public/rights-review.md) and final release checks.
+Flock Dotter is available free for iPhone and iPad on the [App Store](https://apps.apple.com/app/id6827793703), with no in-app purchases. Read the experimental detection and performance limits below before relying on a count.
 
 ## What it does
 
