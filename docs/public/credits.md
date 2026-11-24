@@ -8,12 +8,10 @@ Flock Dotter is developed by Dave Gibson. Original app artwork uses the project�
 
 Header and search creative use the public-domain [USFWS flock of snow geese at Bombay Hook National Wildlife Refuge](https://www.fws.gov/media/flock-snow-geese). Demonstration markers are examples of manual work, not a verified whole-flock total. These listing photographs are not production bundled fixtures.
 
-## Fonts and local suggestions
+## Fonts
 
 IBM Plex Sans and IBM Plex Mono are © 2017 IBM Corp. with Reserved Font Name “Plex”, under SIL OFL 1.1. Full licenses accompany the fonts.
 
-Experimental bird suggestions use a modified CountGD-derived Core ML graph. CountGD is by Niki Amini-Naieni, Tengda Han and Andrew Zisserman; the publisher declares MIT for the selected author weights and code. The integration retains applicable Grounding DINO/BERT Apache 2.0 and Swin/Open-GroundingDino MIT notices and inherited source attributions. See the full [detector notices](../../DotCounter/Resources/BirdPrototype/Third-party-notices.txt) for pins, modifications and copyright/license texts. Attribution does not imply endorsement or a claim of equivalent behavior, accuracy or complete historical training-data clearance.
-
 ## Development and test photography
 
-The Debug flock fixture is the public-domain USFWS photograph credited above. The runtime-test fixture is “[Blackbird-sunset-03.jpg](https://commons.wikimedia.org/wiki/File:Blackbird-sunset-03.jpg)” by Jerry Segraves (en:User:Jsegraves99), dedicated worldwide to the public domain by its author. Neither is included in the public production app. These fixture credits do not license other research-corpus photographs.
+The Debug flock fixture is the public-domain USFWS photograph credited above. It is excluded from production builds.

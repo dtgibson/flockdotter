@@ -66,26 +66,9 @@ import os
     var fitCommand = 0
     var openFiles = false
     var openJSON = false
-    var birdActivity: BirdActivity = .idle
-    var birdReview: BirdReview?
-    var birdMessage = ""
-    var birdOwner = false
-    var birdGeneration = UUID()
-    var birdKey: BirdDetectionKey?
-    var birdControl: BirdScanControl?
-    var birdTask: Task<Void, Never>?
-    var birdDeadline: Task<Void, Never>?
-    var birdTargetReady: UInt64?
-    var birdShowOthers = false
-    var birdDraftMode = false
-    var birdMovingDraft: UUID?
-    var birdCenterCommand = 0
-    var birdMeasurement: BirdScanMeasurement?
     private let store: RecoveryStore
     #if DEBUG
     var qaSuspend: ((String) async throws -> Void)?
-    var qaBirdScan: ((BirdDetectionKey, @escaping @MainActor (Int, Int) async -> Void) async throws -> [BirdSuggestion])?
-    var qaBirdDeadlineWait: (() async -> Void)?
     var qaSaveJob: UUID? { saveJob }
     var qaDetailTask: Task<Void, Never>?
     func qaBoundary(_ point: String) async throws { try await qaSuspend?(point) }
@@ -197,7 +180,6 @@ import os
         clearing = true; clearTarget = nil; clearFailed = false; clearCleanupWarning = nil
         let previousEpoch = lifecycleEpoch, nextEpoch = UUID()
         lifecycleEpoch = nextEpoch; operation = UUID(); detailRequested = nil
-        invalidateBirdDetection(); birdMeasurement = nil; birdMovingDraft = nil
         cancelReplacement(); showPairing = false; openFiles = false; openJSON = false
         filesRequest = nil; jsonRequest = nil; exportShown = false; exportCapture = nil; error = nil
         let oldSave = saveTask
@@ -312,7 +294,6 @@ import os
         let epoch = requestEpoch ?? lifecycleEpoch
         guard isLive(epoch), !committing else { return }
         invalidateRenumber()
-        invalidateBirdDetection()
         #if DEBUG
         NativeQARecorder.shared.beganLocalOpen(active: candidate != nil && !recovering)
         #endif
@@ -337,7 +318,6 @@ import os
         let epoch = requestEpoch ?? lifecycleEpoch
         guard isLive(epoch), !committing else { return }
         invalidateRenumber()
-        invalidateBirdDetection()
         let token = UUID(); operation = token; busy = true
         do {
             let doc = try await Task.detached {
@@ -397,7 +377,6 @@ import os
     func changeMode(_ value: Mode) { guard !clearing, !busy, !exportShown else { return }; mode = value }
     func tap(_ point: CGPoint, hit: UUID?) {
         guard !busy, !clearing, !exportShown else { return }
-        if birdReview != nil { if birdDraftMode { let moving=birdMovingDraft;editBirdReview { if let moving {$0.moveDraft(moving,x:point.x,y:point.y)} else{$0.addDraft(x:point.x,y:point.y)} };birdMovingDraft=nil };return }
         if let hit { selectedID = hit } else if mode == .count { guard markers.count < ResourceLimits.maxMarkers else { error = "This count has reached the 100,000-marker limit. Export it before starting another count."; return }; edit { $0.add(x: point.x, y: point.y) }; selectedID = nil } else { selectedID = nil }
     }
     func move(_ id: UUID, to point: CGPoint) { guard !busy, !clearing, !exportShown else { return }; edit { $0.move(id: id, x: point.x, y: point.y) } }
@@ -424,7 +403,6 @@ import os
         invalidateRenumber()
         guard snapshot.revision < UInt64.max else { error = "This count has reached its edit limit. Export JSON and reopen it."; return }
         setConnectionsVisible(true)
-        invalidateBirdDetection()
         let request = NearestRequest(epoch: lifecycleEpoch, snapshot: snapshot, history: history)
         renumberEligible = request.id; renumberPending = true; renumberNewest = request
         renumberTimer = Task { [weak self] in
@@ -469,7 +447,6 @@ import os
                 #endif
                 if self.renumberIsCurrent(request) {
                     if let next = prepared.1 {
-                        self.invalidateBirdDetection()
                         self.history = prepared.0; self.snapshot = next
                         self.didCommitEdit()
                     }
@@ -495,13 +472,11 @@ import os
     var qaRenumberTask: Task<Void, Never>? { renumberTask }
     var qaRenumberQueued: Bool { renumberNewest != nil }
     #endif
-    func appendBirdBatch(_ batch:[Marker]) { edit { $0.appendBatch(markers:batch) } }
     private func sanitizeSelection() { if !markers.contains(where: { $0.id == selectedID }) { selectedID = nil } }
     private func edit(_ action: (inout MarkerHistory) -> Bool) {
         guard candidate != nil, !busy, !clearing, !exportShown else { return }
         invalidateRenumber()
         guard (snapshot?.revision ?? 0) < UInt64.max else { error = "This count has reached its edit limit. Export JSON and reopen it."; return }
-        invalidateBirdDetection()
         let state = signposter.beginInterval("Committed edit")
         guard action(&history) else { signposter.endInterval("Committed edit", state); return }
         if let snapshot { guard snapshot.revision < UInt64.max else { error = "This count has reached its edit limit. Export JSON and reopen it."; return }; self.snapshot = RecoverySnapshot(workspaceID: snapshot.workspaceID, revision: snapshot.revision + 1, sourceToken: snapshot.sourceToken, image: snapshot.image, markers: markers, baselineDigest: snapshot.baselineDigest) }
@@ -580,7 +555,6 @@ import os
     func recordJSONExport(_ digest: String, workspace: UUID, requestEpoch: UUID? = nil) {
         guard isLive(requestEpoch ?? lifecycleEpoch), let snapshot, snapshot.workspaceID == workspace, snapshot.revision < UInt64.max else { return }
         invalidateRenumber()
-        invalidateBirdDetection()
         self.snapshot = RecoverySnapshot(workspaceID: snapshot.workspaceID, revision: snapshot.revision + 1, sourceToken: snapshot.sourceToken, image: snapshot.image, markers: markers, baselineDigest: digest); scheduleSave()
     }
 }

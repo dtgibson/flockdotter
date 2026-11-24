@@ -269,20 +269,13 @@ import DotCounterCore
         XCTAssertEqual(w.document, before)
     }
 
-    /// Stage 4: live native view geometry, retained engine and selected/review
+    /// Stage 4: live native view geometry, retained engine and selected marker
     /// identity across representative intermediate and very short windows.
     /// Hosted resize evidence is separate from production touch-input evidence.
-    func testQAAdaptiveSelectedReviewLiveResizeAndShortAccessibility() async throws {
+    func testQAAdaptiveSelectedMarkerLiveResizeAndShortAccessibility() async throws {
         let w = try await workspace()
         w.mode = .edit; w.selectedID = w.markers.first?.id
         let before = try XCTUnwrap(w.document), selected = w.selectedID
-        let snapshot = try XCTUnwrap(w.snapshot), candidate = try XCTUnwrap(w.candidate)
-        let key = BirdDetectionKey(workspace: snapshot.workspaceID, source: snapshot.sourceToken, generation: w.birdGeneration, image: candidate.identity, revision: snapshot.revision)
-        w.birdKey = key
-        var review = try BirdReview(key: key, suggestions: [BirdSuggestion(id: "qa-a", x: 0.05, y: 0.05, width: 0.02, height: 0.02, score: 0.9), BirdSuggestion(id: "qa-b", x: 0.95, y: 0.95, width: 0.02, height: 0.02, score: 0.8)], eligible: true)
-        XCTAssertTrue(review.decide(.accepted, target: "qa-a", epoch: review.epoch))
-        w.birdReview = review
-        let decisions = review.decisions, epoch = review.epoch
         let host = UIHostingController(rootView: WorkspaceView(workspace: w))
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let window = UIWindow(windowScene: scene); window.rootViewController = host; window.makeKeyAndVisible()
@@ -297,16 +290,15 @@ import DotCounterCore
             retained = canvas.engine
             XCTAssertGreaterThanOrEqual(canvas.bounds.height, 100)
             XCTAssertEqual(w.document, before); XCTAssertEqual(w.selectedID, selected); XCTAssertEqual(w.mode, .edit)
-            XCTAssertEqual(w.birdReview?.decisions, decisions); XCTAssertEqual(w.birdReview?.epoch, epoch)
             let modes = try XCTUnwrap(descendants(host.view, of: ModeSegmentedControl.self).first)
             XCTAssertGreaterThanOrEqual(modes.bounds.height, 44)
             let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in window.drawHierarchy(in: window.bounds, afterScreenUpdates: true) }
-            let a = XCTAttachment(image: image); a.name = "QA native selected review \(Int(size.width))x\(Int(size.height))"; a.lifetime = .keepAlways; add(a)
-            let text = XCTAttachment(string: "window=\(window.bounds) canvas=\(canvas.convert(canvas.bounds,to:host.view)) working=\(canvas.engine.viewport.workingRect) scale=\(canvas.engine.viewport.scale) selected=\(String(describing: selected)) decisions=\(decisions) epoch=\(epoch)"); text.lifetime = .keepAlways; add(text)
+            let a = XCTAttachment(image: image); a.name = "QA native selected marker \(Int(size.width))x\(Int(size.height))"; a.lifetime = .keepAlways; add(a)
+            let text = XCTAttachment(string: "window=\(window.bounds) canvas=\(canvas.convert(canvas.bounds,to:host.view)) working=\(canvas.engine.viewport.workingRect) scale=\(canvas.engine.viewport.scale) selected=\(String(describing: selected))"); text.lifetime = .keepAlways; add(text)
             if size.width == 520 {
                 let scrollFrames = descendants(host.view, of: UIScrollView.self).filter { !$0.isHidden && $0.alpha > 0 }.map { $0.convert($0.bounds, to: host.view).intersection(host.view.bounds) }
                 let proof = XCTAttachment(string: "Visible scroll-host intersections at 520x420: \(scrollFrames)"); proof.name = "QA adaptive supplement hit containment"; proof.lifetime = .keepAlways; add(proof)
-                XCTAssertTrue(scrollFrames.contains { $0.height >= 44 && $0.width >= 44 }, "Selected/review controls need a visible scroll host that can contain a 44pt target; got \(scrollFrames)")
+                XCTAssertTrue(scrollFrames.contains { $0.height >= 44 && $0.width >= 44 }, "Selected marker controls need a visible scroll host that can contain a 44pt target; got \(scrollFrames)")
             }
             // Delta raster/hit proof: public in-process accessibility exposes
             // UIKit views but not SwiftUI virtual buttons. Capture the real
@@ -333,7 +325,6 @@ import DotCounterCore
                     }
                     let proof = XCTAttachment(string: "size=\(size) offset=\(scroll.contentOffset) content=\(scroll.contentSize) adjustedInsets=\(scroll.adjustedContentInset) clip=\(clip) gridOrigin=(\(clip.minX+4),\(clip.minY+4)) step=8\n" + grid.joined(separator:"\n")); proof.name = name + " hit routing"; proof.lifetime = .keepAlways; add(proof)
                     XCTAssertEqual(w.document, before); XCTAssertEqual(w.selectedID, selected); XCTAssertEqual(w.mode, .edit)
-                    XCTAssertEqual(w.birdReview?.decisions, decisions); XCTAssertEqual(w.birdReview?.epoch, epoch)
                 }
                 if canvas.isDescendant(of: scroll) {
                     let canvasRect = canvas.convert(canvas.bounds, to: scroll)
@@ -510,16 +501,12 @@ import DotCounterCore
         w.recordJSONExport(doc.contentDigest, workspace: snap.workspaceID)
         await w.flush()
         XCTAssertFalse(w.dirty); XCTAssertTrue(w.canClear, "exported baseline also always confirms")
-        let key = BirdDetectionKey(workspace: snap.workspaceID, source: snap.sourceToken, generation: w.birdGeneration, image: snap.image, revision: try XCTUnwrap(w.snapshot).revision)
-        w.birdKey = key
-        w.birdReview = try BirdReview(key: key, suggestions: [BirdSuggestion(id: "synthetic", x: 0.4, y: 0.5, width: 0.1, height: 0.1, score: 0.8)], eligible: true)
-        w.birdReview?.skipAll(); w.birdReview?.addDraft(x: 0.7, y: 0.8)
         let held = try await w.acquireSourceLease(snap.sourceToken)
         let loadedBytes = try Data(contentsOf: held)
         await w.confirmClear(try target(w))
         XCTAssertFalse(w.clearing); XCTAssertFalse(w.clearFailed); XCTAssertNil(w.candidate); XCTAssertNil(w.snapshot)
         XCTAssertEqual(w.total, 0); XCTAssertNil(w.selectedID); XCTAssertFalse(w.history.canUndo); XCTAssertFalse(w.history.canRedo)
-        XCTAssertNil(w.birdReview); XCTAssertNil(w.birdKey); XCTAssertNil(w.pairing); XCTAssertNil(w.pending)
+        XCTAssertNil(w.pairing); XCTAssertNil(w.pending)
         w.undo(); w.redo(); await w.flush(); XCTAssertEqual(w.total, 0)
         XCTAssertEqual(try Data(contentsOf: held), loadedBytes)
         await w.releaseSourceLease(snap.sourceToken)
@@ -565,7 +552,7 @@ import DotCounterCore
         XCTAssertTrue(gate.entered); XCTAssertTrue(w.clearing); XCTAssertEqual(w.document, doc)
         try await Task.sleep(for: .milliseconds(150)); capture("Native hosted clear progress with held filesystem operation")
         w.tap(CGPoint(x: 0.5, y: 0.5), hit: nil); w.remove(); w.undo(); w.redo(); w.renumber(.leftToRight)
-        w.deselect(); w.changeMode(.count); w.showExport(); w.openPhotoFiles(); w.openCountFile(); w.startBirdDetection()
+        w.deselect(); w.changeMode(.count); w.showExport(); w.openPhotoFiles(); w.openCountFile()
         XCTAssertEqual(w.document, doc); XCTAssertEqual(w.selectedID, selected); XCTAssertEqual(w.mode, .edit)
         XCTAssertFalse(w.exportShown); XCTAssertFalse(w.openFiles); XCTAssertFalse(w.openJSON); XCTAssertFalse(w.canClear)
         await w.confirmClear(confirmation) // Duplicate must settle immediately.
@@ -802,37 +789,4 @@ import DotCounterCore
             XCTAssertEqual(try Data(contentsOf: jsonOutput), try Data(contentsOf: json))
         } }
     }
-    func testSyntheticDetectorProgressResultDeadlineAndFinalizerDrainAcrossClear() async throws {
-        let suggestion = BirdSuggestion(id: "synthetic", x: 0.3, y: 0.4, width: 0.1, height: 0.1, score: 0.9)
-        for boundary in 0..<3 { for failure in [false, true] {
-            let w = await workspace(uncertain: boundary == 1)
-            let gate = CompletionGate("birdProgress", "result", "deadline", "birdFinalizer")
-            defer { gate.releaseAll() }
-            w.qaSuspend = { try await gate.pause($0) }
-            w.qaBirdDeadlineWait = { try? await gate.pause("deadline") }
-            w.qaBirdScan = { _, progress in
-                await progress(1, 2); try await gate.pause("result"); return [suggestion]
-            }
-            w.startBirdDetection(); let task = try XCTUnwrap(w.birdTask)
-            try await gate.wait("birdProgress"); try await gate.wait("deadline")
-            let oldSource = try XCTUnwrap(w.candidate).sourceURL
-            w.qaSuspend = nil; try await clear(w, thenOpen: boundary == 2)
-            let current = w.snapshot, message = w.birdMessage
-            XCTAssertEqual(w.birdActivity, .idle); XCTAssertTrue(w.birdOwner)
-            gate.release("birdProgress"); try await gate.wait("result")
-            XCTAssertEqual(w.birdActivity, .idle, "Obsolete production progress is ignored")
-            gate.release("deadline"); try await Task.sleep(for: .milliseconds(20))
-            XCTAssertEqual(w.birdActivity, .idle); XCTAssertEqual(w.birdMessage, message)
-            w.qaSuspend = { try await gate.pause($0) }
-            gate.release("result", fail: failure); try await gate.wait("birdFinalizer")
-            XCTAssertTrue(w.birdOwner); XCTAssertFalse(w.canDetectBirds)
-            if boundary != 1 { XCTAssertFalse(FileManager.default.fileExists(atPath: oldSource.path)) }
-            gate.release("birdFinalizer"); await task.value; w.qaSuspend = nil
-            unchanged(w, current); XCTAssertNil(w.birdReview); XCTAssertNil(w.birdMeasurement)
-            XCTAssertEqual(w.birdActivity, .idle); XCTAssertEqual(w.birdMessage, message); XCTAssertFalse(w.birdOwner)
-            if boundary == 2 { XCTAssertTrue(w.canDetectBirds, "New scan admission resumes after the old owner drains") }
-        } }
-    }
-
-
 }

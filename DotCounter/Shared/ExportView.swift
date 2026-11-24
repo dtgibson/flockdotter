@@ -106,9 +106,6 @@ struct ExportView: View {
     @ViewBuilder private func completion(_ kind: String) -> some View { if let message = status[kind] { Label(message, systemImage: "checkmark.circle").font(Design.font(13)).foregroundStyle(Design.success).accessibilityAddTraits(.updatesFrequently) } }
     private func generatePNG() async {
         guard live, png == nil, !rendering, !output.closed else { return }; rendering = true
-        workspace.invalidateBirdDetection(message:"Exports include committed markers only.")
-        await workspace.birdTask?.value
-        guard live, !output.closed else { rendering = false; return }
         do {
             let owner = try output.resources()
             defer { withExtendedLifetime(owner) {} }

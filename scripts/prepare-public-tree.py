@@ -11,19 +11,15 @@ from pathlib import Path
 import re
 import subprocess
 
-ROOT_FILES = ("README.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", ".gitattributes", "project.yml")
+ROOT_FILES = ("README.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "project.yml")
 SOURCE_DIRS = ("DotCounter/Shared", "DotCounter/iOS", "DotCounter/macOS", "DotCounter/Configuration",
-               "DotCounterUITests", "DotCounterRegressionTests", "DotCounterOwnerBetaRuntimeTests",
+               "DotCounterUITests", "DotCounterRegressionTests",
                "Packages/DotCounterCore/Sources", "Packages/DotCounterCore/Tests", "docs/public")
 RESOURCE_DIRS = ("DotCounter/Resources",)
 EXACT_FILES = ("Packages/DotCounterCore/Package.swift", "Packages/DotCounterCore/README.md", "scripts/prepare-public-tree.py")
-MODEL_SCRIPTS = ("load_probe.py", "fixed_text_probe.py", "native_model_builder.py", "rank5_attention.py", "native_valid_max_probe.py")
-MODEL_ORIGIN = "pipeline/automatic-bird-detection/feasibility/counting-models/scripts"
-EXTENSIONS = {".swift", ".md", ".txt", ".json", ".plist", ".xcprivacy", ".entitlements", ".ttf", ".png", ".jpg", ".mlmodel", ".bin"}
-REQUIRED = ("DotCounter/Resources/BirdPrototype/Third-party-notices.txt",
-            "DotCounter/Resources/BirdPrototype/Notices/Lineage-and-modifications.txt",
-            "DotCounter/Resources/BirdPrototype/prototype-contract.json",
-            "DotCounter/Resources/PrivacyInfo.xcprivacy")
+EXTENSIONS = {".swift", ".md", ".txt", ".json", ".plist", ".xcprivacy", ".entitlements", ".ttf", ".png", ".jpg"}
+REQUIRED = ("DotCounter/Resources/PrivacyInfo.xcprivacy", "DotCounter/Resources/Fonts/OFL-IBM-Plex-Sans.txt",
+            "DotCounter/Resources/Fonts/OFL-IBM-Plex-Mono.txt")
 PRIVATE_PATTERNS = (r"https?://[^\s\"<>]*\.ts\.net", r"/" + r"Users/[^/\s]+/")
 PUBLIC_IGNORE = ".DS_Store\n/build*/\nPackages/*/.build/\nPackages/*/.swiftpm/\n**/xcuserdata/\n*.xcresult/\n*.xcarchive/\n*.app/\n*.dSYM/\n__pycache__/\n*.py[cod]\n.env\n.env.*\n*.p8\n*.p12\n*.mobileprovision\n*.provisionprofile\nDotCounter.xcodeproj/\n"
 
@@ -61,22 +57,15 @@ def main():
                 if path.suffix not in EXTENSIONS:
                     parser.error(f"unreviewed extension: {path.relative_to(source)}")
                 selected[path.relative_to(source).as_posix()] = path
-    for name in MODEL_SCRIPTS:
-        path = source / MODEL_ORIGIN / name
-        if not path.exists():
-            path = source / "tools/model-origin" / name
-        selected[f"tools/model-origin/{name}"] = path
     for name in REQUIRED:
         if name not in selected:
             parser.error(f"required public resource missing: {name}")
     records, payloads, transforms = [], {}, []
     for relative, path in sorted(selected.items()):
-        if not path.is_file() or path.is_symlink():
+        if not path.is_file() or path.resolve() != path:
             parser.error(f"required allowlisted file missing or symlink: {relative}")
         data = path.read_bytes()
         source_sha = hashlib.sha256(data).hexdigest()
-        if data.startswith(b"version https://git-lfs.github.com/spec/v1"):
-            parser.error(f"unhydrated Git LFS pointer: {relative}; run git lfs pull before preparing or building")
         if relative == "project.yml":
             # Historical private signing defaults are not part of a public build recipe.
             text = data.decode("utf-8")
@@ -85,7 +74,7 @@ def main():
             if filtered != lines:
                 transforms.append({"path": relative, "operation": "remove historical iphoneos signing team/profile/identity/style defaults; caller supplies signing separately"})
             data = "".join(filtered).encode()
-        if path.suffix not in {".ttf", ".png", ".jpg", ".mlmodel", ".bin"}:
+        if path.suffix not in {".ttf", ".png", ".jpg"}:
             text = data.decode("utf-8")
             for pattern in PRIVATE_PATTERNS:
                 if re.search(pattern, text):
@@ -96,14 +85,6 @@ def main():
     for record in records:
         if sha(source / record["source_path"]) != record["source_sha256"]:
             parser.error(f"source changed during snapshot: {record['source_path']}; retry after edits finish")
-    model = source / "DotCounter/Resources/BirdPrototype/prototype-contract.json"
-    contract = json.loads(model.read_text())
-    model_root = "DotCounter/Resources/BirdPrototype/CountGDFixedBird800ValidMaxFP32.mlpackage/"
-    for entry in contract["model"]["files"]:
-        relative = model_root + entry["path"]
-        data = payloads.get(relative)
-        if data is None or len(data) != entry["bytes"] or hashlib.sha256(data).hexdigest() != entry["sha256"]:
-            parser.error(f"model identity differs from frozen contract: {relative}")
     ignore_data = PUBLIC_IGNORE.encode()
     payloads[".gitignore"] = ignore_data
     records.append({"path": ".gitignore", "bytes": len(ignore_data), "sha256": hashlib.sha256(ignore_data).hexdigest(),

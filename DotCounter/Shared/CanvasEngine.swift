@@ -28,10 +28,7 @@ private final class CanvasSurfacePreparation: @unchecked Sendable {
     var publicationEpoch: UUID?
     var gestureEpoch: UUID?
     var lastFit = -1, lastZoom = 0
-    var lastBirdCenter = -1
     var lastSelection: UUID?
-    var reviewScale:CGFloat = 5
-    var reviewRun:UUID?
     var start: CGPoint?, previous: CGPoint?, movingID: UUID?, preview: CGPoint?
     var dragged = false, navigation = false
     var invalidate: (() -> Void)?
@@ -98,14 +95,7 @@ private final class CanvasSurfacePreparation: @unchecked Sendable {
         }
         viewport.resize(to: size, workingRect: workingRect)
         if lastFit != workspace.fitCommand { viewport.fit(); lastFit = workspace.fitCommand }
-        if lastZoom != workspace.zoomCommand { viewport.zoom(by: pow(1.4, CGFloat(workspace.zoomCommand - lastZoom)), around: CGPoint(x: size.width/2, y: size.height/2)); lastZoom = workspace.zoomCommand; if workspace.birdReview?.phase == .guided { reviewScale=viewport.scale }; if viewport.zoomFactor > 1.5 { workspace.requestDetail() } }
-        if let review=workspace.birdReview {
-            if reviewRun != review.key.run {reviewRun=review.key.run;reviewScale=5}
-            if lastBirdCenter != workspace.birdCenterCommand {
-                lastBirdCenter=workspace.birdCenterCommand
-                if review.phase == .guided,let target=workspace.birdCurrent {viewport.focus(x:target.x,y:target.y,sourceScale:reviewScale);workspace.requestDetail()}
-            }
-        } else {reviewRun=nil}
+        if lastZoom != workspace.zoomCommand { viewport.zoom(by: pow(1.4, CGFloat(workspace.zoomCommand - lastZoom)), around: CGPoint(x: size.width/2, y: size.height/2)); lastZoom = workspace.zoomCommand; if viewport.zoomFactor > 1.5 { workspace.requestDetail() } }
         if let selected = workspace.selectedID,
            let marker = workspace.markers.first(where: { $0.id == selected }) {
             if selected != lastSelection || geometryChanged { viewport.reveal(x: marker.x, y: marker.y) }
@@ -175,20 +165,6 @@ private final class CanvasSurfacePreparation: @unchecked Sendable {
                                     fontSize: 12, selected: marker.id == workspace.selectedID, appearance: appearance)
             }
         }
-        if let review=workspace.birdReview {
-            for (i,p) in review.suggestions.enumerated() where workspace.birdShowOthers || (review.phase == .guided && i==review.current) {
-                let point=viewport.screenPoint(x:p.x,y:p.y),current=review.phase == .guided && i==review.current
-                context.setStrokeColor(review.decisions[i] == .rejected ? Design.rejectedStroke:Design.proposalStroke);context.setLineWidth(current ? 2:1.5)
-                context.setLineDash(phase:0,lengths:current ? [4,3]:[])
-                let radius:CGFloat=current ? 20:4
-                context.strokeEllipse(in:CGRect(x:point.x-radius,y:point.y-radius,width:radius*2,height:radius*2));context.setLineDash(phase:0,lengths:[])
-                if current || review.decisions[i] == .rejected {context.move(to:CGPoint(x:point.x-7,y:point.y));context.addLine(to:CGPoint(x:point.x+7,y:point.y));context.move(to:CGPoint(x:point.x,y:point.y-7));context.addLine(to:CGPoint(x:point.x,y:point.y+7));context.strokePath()}
-            }
-            context.setStrokeColor(Design.draftStroke);context.setLineWidth(2)
-            for draft in review.drafts {let p=viewport.screenPoint(x:draft.x,y:draft.y);context.move(to:CGPoint(x:p.x-6,y:p.y));context.addLine(to:CGPoint(x:p.x+6,y:p.y));context.move(to:CGPoint(x:p.x,y:p.y-6));context.addLine(to:CGPoint(x:p.x,y:p.y+6));context.strokePath()}
-            let epoch=review.epoch,key=review.key
-            Task { @MainActor [weak workspace] in if workspace?.birdReview?.key==key,workspace?.birdReview?.epoch==epoch {workspace?.birdTargetReady=epoch} }
-        }
         context.restoreGState()
     }
     private func overlayKey(snapshot: RecoverySnapshot) -> OverlayKey {
@@ -257,7 +233,7 @@ private final class CanvasSurfacePreparation: @unchecked Sendable {
     func begin(_ point: CGPoint, radius: CGFloat, forcePan: Bool = false) {
         guard !workspace.busy, !workspace.clearing, workspace.candidate != nil else { return }
         cancel(); gestureEpoch = workspace.lifecycleEpoch; start = point; previous = point; navigation = forcePan
-        if !forcePan, workspace.mode == .edit,workspace.birdReview==nil { movingID = viewport.nearestMarker(at: point, markers: workspace.markers, radius: radius); if let movingID { workspace.selectedID = movingID } }
+        if !forcePan, workspace.mode == .edit { movingID = viewport.nearestMarker(at: point, markers: workspace.markers, radius: radius); if let movingID { workspace.selectedID = movingID } }
     }
     func drag(_ point: CGPoint, threshold: CGFloat) {
         guard let gestureEpoch, workspace.isLive(gestureEpoch), let start, let previous else { return }
@@ -278,6 +254,6 @@ private final class CanvasSurfacePreparation: @unchecked Sendable {
         }
     }
     func cancel() { gestureEpoch = nil; start = nil; previous = nil; movingID = nil; preview = nil; dragged = false; navigation = false }
-    func zoom(_ factor: CGFloat, at point: CGPoint) { guard !workspace.clearing else { return }; cancel(); viewport.zoom(by: factor, around: point);if workspace.birdReview?.phase == .guided{reviewScale=viewport.scale}; if viewport.zoomFactor > 1.5 { workspace.requestDetail() }; invalidate?() }
+    func zoom(_ factor: CGFloat, at point: CGPoint) { guard !workspace.clearing else { return }; cancel(); viewport.zoom(by: factor, around: point); if viewport.zoomFactor > 1.5 { workspace.requestDetail() }; invalidate?() }
     func pan(_ delta: CGSize) { guard !workspace.clearing else { return }; cancel(); viewport.pan(by: CGPoint(x: delta.width, y: delta.height)); invalidate?() }
 }

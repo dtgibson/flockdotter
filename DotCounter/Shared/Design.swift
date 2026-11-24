@@ -10,11 +10,9 @@ enum Design {
     static let destructive = Color(hex: destructiveValue)
     static let accentPressed = Color(hex: 0x006C7D), divider = Color(hex: 0x9FB1B8), success = Color(hex: 0x18745F)
     static let chromeRadius: CGFloat = 26
-    static let proposalStroke = stroke(accentValue), rejectedStroke = stroke(destructiveValue), draftStroke = stroke(navyValue)
-    private static func stroke(_ hex:UInt32)->CGColor {CGColor(srgbRed:CGFloat((hex>>16)&255)/255,green:CGFloat((hex>>8)&255)/255,blue:CGFloat(hex&255)/255,alpha:1)}
     static func font(_ size: CGFloat = 14, bold: Bool = false) -> Font { .custom(bold ? "IBMPlexSans-SemiBold" : "IBMPlexSans", size: size, relativeTo: .body) }
     static func registerFonts() {
-        for name in ["IBMPlexSans-Regular", "IBMPlexSans-SemiBold", "IBMPlexSans-Bold", "IBMPlexMono-SemiBold"] {
+        for name in ["IBMPlexSans-Regular", "IBMPlexSans-SemiBold", "IBMPlexMono-SemiBold"] {
             if let url = Bundle.main.url(forResource: name, withExtension: "ttf") { CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil) }
         }
     }

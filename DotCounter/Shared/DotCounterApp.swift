@@ -23,7 +23,7 @@ import UIKit
             WorkspaceView(workspace: workspace).frame(minWidth: 480, minHeight: 540)
                 .background(WindowCloseHook(workspace: workspace))
                 .onAppear { appDelegate.workspace = workspace }
-                .onChange(of:scenePhase){_,phase in if phase == .background{workspace.invalidateRenumber(); workspace.invalidateBirdDetection()}}
+                .onChange(of:scenePhase){_,phase in if phase == .background{workspace.invalidateRenumber()}}
         }.defaultSize(width: 1120, height: 800)
             .commands { CommandGroup(replacing: .newItem) {
                 Button("Open Photo…") { workspace.openPhotoFiles() }.keyboardShortcut("o").disabled(!workspace.canOpen)
@@ -33,7 +33,7 @@ import UIKit
         WindowGroup { WorkspaceView(workspace: workspace) }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .background {
-                    workspace.invalidateRenumber(); workspace.invalidateBirdDetection()
+                    workspace.invalidateRenumber()
                     let identifier = UIApplication.shared.beginBackgroundTask(withName: "Save current count")
                     Task { await workspace.flush(); if identifier != .invalid { UIApplication.shared.endBackgroundTask(identifier) } }
                 }
@@ -46,7 +46,7 @@ import UIKit
     var workspace: Workspace?
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let workspace else { return .terminateNow }
-        workspace.invalidateRenumber(); workspace.invalidateBirdDetection()
+        workspace.invalidateRenumber()
         Task {
             await workspace.flush()
             if workspace.recoveryStale {

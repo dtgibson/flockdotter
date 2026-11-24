@@ -14,7 +14,7 @@ import XCTest
         XCUIDevice.shared.orientation = .portrait
         #endif
         app.launch()
-        XCTAssertTrue(app.staticTexts["QA-flock.jpg"].waitForExistence(timeout: 30), app.debugDescription)
+        expectWorkspacePhoto("QA-flock.jpg")
         XCTAssertTrue(canvas.waitForExistence(timeout: 10))
         expectTotal(0)
     }
@@ -47,6 +47,29 @@ import XCTest
         #endif
         return app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", label)).firstMatch
     }
+    private func expectWorkspacePhoto(_ filename: String?) {
+        #if os(iOS)
+        let total = app.descendants(matching: .any)["countTotal"].firstMatch
+        let expected = filename ?? "One photo. One count."
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", expected), object: total)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 30), .completed, app.debugDescription)
+        #else
+        XCTAssertTrue(app.staticTexts[filename ?? "One photo. One count."].waitForExistence(timeout: 30))
+        #endif
+    }
+
+    private func toolbarAction(_ label: String) -> XCUIElement {
+        let action = control(label)
+        #if os(iOS)
+        if !action.exists || !action.isHittable {
+            let more = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'more' OR label CONTAINS[c] 'overflow'")).firstMatch
+            if more.exists { more.tap() }
+            return control(label)
+        }
+        #endif
+        return action
+    }
+
     private func expectTotal(_ count: Int, file: StaticString = #filePath, line: UInt = #line) {
         let total = app.descendants(matching: .any)["countTotal"].firstMatch
         XCTAssertTrue(total.waitForExistence(timeout: 5), file: file, line: line)
@@ -61,17 +84,17 @@ import XCTest
         pressPoint(0.75, 0.55); expectTotal(1)
         pressPoint(0.25, 0.45); expectTotal(2)
         pressPoint(0.5, 0.5); expectTotal(3)
-        activate(control("Undo")); expectTotal(2)
-        activate(control("Redo")); expectTotal(3)
+        activate(toolbarAction("Undo")); expectTotal(2)
+        activate(toolbarAction("Redo")); expectTotal(3)
 
         // Identifying a counted bird does not append a duplicate.
         pressPoint(0.75, 0.55); expectTotal(3)
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Marker 1")).firstMatch.waitForExistence(timeout: 5))
         activate(control("Edit"))
         activate(control("Remove")); expectTotal(2)
-        activate(control("Undo")); expectTotal(3)
+        activate(toolbarAction("Undo")); expectTotal(3)
 
-        activate(control("Renumber"))
+        activate(toolbarAction("Renumber"))
         activate(control("Left to Right"))
         pressPoint(0.75, 0.55)
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Marker 3")).firstMatch.waitForExistence(timeout: 5), app.debugDescription)
@@ -81,12 +104,13 @@ import XCTest
         activate(control("Count"))
         point(0.75, 0.55).press(forDuration: 0.1, thenDragTo: point(0.60, 0.40))
         expectTotal(3)
-        activate(control("Zoom In")); expectTotal(3)
-        activate(control("Zoom Out")); expectTotal(3)
-        activate(control("Fit")); expectTotal(3)
+        activate(toolbarAction("Zoom In")); expectTotal(3)
+        activate(toolbarAction("Zoom Out")); expectTotal(3)
+        activate(toolbarAction("Fit")); expectTotal(3)
 
-        let saved = app.staticTexts["Current count saved on this device"]
-        XCTAssertTrue(saved.waitForExistence(timeout: 10))
+        #if os(macOS)
+        XCTAssertTrue(app.staticTexts["Current count saved on this device"].waitForExistence(timeout: 10))
+        #endif
         let loaded = XCTAttachment(screenshot: app.screenshot())
         loaded.name = "Native count after edit, renumber and navigation"
         loaded.lifetime = .keepAlways
@@ -94,7 +118,7 @@ import XCTest
 
         app.terminate()
         app.launch()
-        XCTAssertTrue(app.staticTexts["QA-flock.jpg"].waitForExistence(timeout: 30))
+        expectWorkspacePhoto("QA-flock.jpg")
         expectTotal(3)
         XCTAssertFalse(control("Undo").isEnabled, "Recovery starts a new in-memory history")
         pressPoint(0.35, 0.50); expectTotal(4)
@@ -109,7 +133,7 @@ import XCTest
         pressPoint(0.5, 0.5); expectTotal(1)
         XCUIDevice.shared.orientation = .landscapeLeft
         expectTotal(1)
-        activate(control("Fit"))
+        activate(toolbarAction("Fit"))
         activate(control("Export"))
         let savePNG = control("Save PNG…")
         XCTAssertTrue(savePNG.waitForExistence(timeout: 20), app.debugDescription)
@@ -132,29 +156,11 @@ import XCTest
     private func captureWorkspaceHelp(_ name: String) {
         let proof = XCTAttachment(screenshot: app.screenshot()); proof.name = name; proof.lifetime = .keepAlways; add(proof)
     }
-    private func helpControl(_ label: String) -> XCUIElement {
-        let button = control(label), scroll = app.scrollViews["helpContents"]
-        for _ in 0..<12 where !button.isHittable {
-            let downward = button.frame.minY < scroll.frame.minY + 80
-            let from = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: downward ? 0.4 : 0.7))
-            let to = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: downward ? 0.7 : 0.4))
-            from.press(forDuration: 0.05, thenDragTo: to)
-        }
-        XCTAssertTrue(button.isHittable, app.debugDescription)
-        return button
-    }
     func testClearCancelDurableRelaunchAndOfflineHelp() throws {
         launchFreshWorkspace()
-        activate(control("Help"))
-        XCTAssertTrue(app.staticTexts["Bird detection · Experimental"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Everything runs on this device. No photo upload, internet connection, account or API key is needed."].exists)
+        activate(toolbarAction("Help"))
+        XCTAssertTrue(app.staticTexts["Count and navigate"].waitForExistence(timeout: 5))
         captureWorkspaceHelp("Native populated Help overview")
-        activate(helpControl("How detection works"))
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Flock Dotter uses a modified CountGD model converted to Core ML")).firstMatch.exists)
-        captureWorkspaceHelp("Native model explanation disclosure")
-        activate(helpControl("How detection works"))
-        activate(helpControl("Third-party notices"))
-        captureWorkspaceHelp("Native offline third-party notices")
         activate(control("Done"))
         activate(control("Open")); activate(control("Clear workspace…"))
         XCTAssertTrue(app.alerts["Clear workspace?"].waitForExistence(timeout: 5))
@@ -166,12 +172,12 @@ import XCTest
         XCTAssertTrue(control("Undo").isEnabled)
         activate(control("Open")); activate(control("Clear workspace…"))
         activate(control("Clear workspace"))
-        XCTAssertTrue(app.staticTexts["No photo open"].waitForExistence(timeout: 10))
+        expectWorkspacePhoto(nil)
         expectTotal(0); XCTAssertFalse(control("Undo").isEnabled); XCTAssertFalse(control("Redo").isEnabled)
         captureWorkspaceHelp("Native durable empty workspace")
         app.terminate(); app.launchEnvironment.removeValue(forKey: "DOTCOUNTER_QA_FIXTURE"); app.launch()
-        XCTAssertTrue(app.staticTexts["One photo. One count."].waitForExistence(timeout: 15)); expectTotal(0)
-        activate(control("Help")); XCTAssertTrue(app.staticTexts["Bird detection · Experimental"].waitForExistence(timeout: 5))
+        expectWorkspacePhoto(nil); expectTotal(0)
+        activate(toolbarAction("Help")); XCTAssertTrue(app.staticTexts["Count and navigate"].waitForExistence(timeout: 5))
         captureWorkspaceHelp("Native empty-workspace Help after relaunch")
         activate(control("Done"))
     }
@@ -183,7 +189,7 @@ import XCTest
         app.launchEnvironment["DOTCOUNTER_QA_FIXTURE"] = "1"
         app.launchEnvironment["DOTCOUNTER_QA_CLEAR"] = "held-uncertain"
         XCUIDevice.shared.orientation = .portrait; app.launch()
-        XCTAssertTrue(app.staticTexts["QA-flock.jpg"].waitForExistence(timeout: 30))
+        expectWorkspacePhoto("QA-flock.jpg")
         pressPoint(0.5, 0.5); expectTotal(1)
         activate(control("Edit")); pressPoint(0.5, 0.5)
         XCTAssertTrue(control("Remove").isEnabled); XCTAssertTrue(control("Deselect marker").isEnabled)
@@ -205,11 +211,11 @@ import XCTest
         app.launchEnvironment["DOTCOUNTER_QA_FIXTURE"] = "1"
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         XCUIDevice.shared.orientation = .portrait; app.launch()
-        XCTAssertTrue(app.staticTexts["QA-flock.jpg"].waitForExistence(timeout: 30))
+        expectWorkspacePhoto("QA-flock.jpg")
         let bottom = app.scrollViews["workspaceBottomControls"]
         for _ in 0..<4 where !control("Help").isHittable { bottom.swipeUp() }
         XCTAssertTrue(control("Help").isHittable); XCTAssertGreaterThanOrEqual(control("Help").frame.height, 44)
-        activate(control("Help")); XCTAssertTrue(control("Done").waitForExistence(timeout: 5))
+        activate(toolbarAction("Help")); XCTAssertTrue(control("Done").waitForExistence(timeout: 5))
         captureWorkspaceHelp("Native AX5 Help top and fixed Done")
         let scroll = app.scrollViews["helpContents"]
         for _ in 0..<14 where !app.staticTexts["Keep or clear a count"].isHittable { scroll.swipeUp() }

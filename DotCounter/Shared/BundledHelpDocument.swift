@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Legal and privacy reading stays available without a connection or detector startup.
+/// Legal and privacy reading stays available offline.
 struct BundledHelpDocument: View {
     let title: String
     let resource: String

@@ -48,14 +48,6 @@ public struct ViewportTransform: Sendable {
                               y: (canvasSize.height - imageSize.height * scale) / 2)
         clamp()
     }
-    /// Inspection may center a border bird with surrounding canvas visible.
-    public mutating func focus(x:Double,y:Double,sourceScale:CGFloat) {
-        guard x.isFinite,y.isFinite,sourceScale.isFinite,sourceScale>0 else{return}
-        scale=min(max(fitScale,sourceScale),max(fitScale*32,5))
-        translation=CGPoint(x:workingRect.midX-CGFloat(x)*imageSize.width*scale,y:workingRect.midY-CGFloat(y)*imageSize.height*scale)
-        clamp()
-    }
-
     public mutating func pan(by delta: CGPoint) {
         guard delta.x.isFinite, delta.y.isFinite else { return }
         translation.x += delta.x

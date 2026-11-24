@@ -22,7 +22,6 @@ public struct MarkerHistory: Sendable {
         case remove(Marker, Int)
         case move(before: Marker, after: Marker)
         case reorder(before: [UUID], after: [UUID])
-        case batch([Marker], Int, removing: Bool)
 
         var inverse: Command {
             switch self {
@@ -30,24 +29,11 @@ public struct MarkerHistory: Sendable {
             case let .remove(marker, index): .insert(marker, index)
             case let .move(before, after): .move(before: after, after: before)
             case let .reorder(before, after): .reorder(before: after, after: before)
-            case let .batch(markers, index, removing): .batch(markers, index, removing: !removing)
             }
         }
     }
 
     public init(markers: [Marker] = []) { self.markers = markers }
-
-    /// Validate the complete batch before changing count, redo or history.
-    @discardableResult public mutating func appendBatch(markers additions: [Marker]) -> Bool {
-        guard !additions.isEmpty, additions.count <= 10_000,
-              additions.count <= ResourceLimits.maxMarkers - markers.count else { return false }
-        var identities = Set(markers.map(\.id))
-        for marker in additions {
-            guard (try? marker.validate()) != nil, identities.insert(marker.id).inserted else { return false }
-        }
-        commit(.batch(additions, markers.count, removing: false))
-        return true
-    }
 
     @discardableResult public mutating func add(x: Double, y: Double) -> Bool {
         guard markers.count < ResourceLimits.maxMarkers else { return false }
@@ -158,9 +144,6 @@ public struct MarkerHistory: Sendable {
         case let .reorder(_, after):
             let lookup = Dictionary(uniqueKeysWithValues: markers.map { ($0.id, $0) })
             markers = after.compactMap { lookup[$0] }
-        case let .batch(batch, index, removing):
-            if removing { markers.removeSubrange(index..<(index + batch.count)) }
-            else { markers.insert(contentsOf: batch, at: index) }
         }
     }
 }

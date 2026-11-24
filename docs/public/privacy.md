@@ -1,18 +1,16 @@
 # Flock Dotter privacy policy
 
-Last updated: 4 November 2026.
+Last updated: 24 November 2026.
 
-Flock Dotter processes your selected photos and counts on your device. The app has no account, advertising, tracking, analytics service or developer-operated server. The app does not send photos, marker coordinates, counts or detection results to the developer or a third party.
+Flock Dotter processes your selected photos and counts on your device. The app has no account, advertising, tracking, analytics service or developer-operated server. The app does not send photos, marker coordinates, or counts to the developer or a third party.
 
 ## Photos and files you choose
 
 Use the system Photos picker or Files picker to choose an image. Flock Dotter receives the selected item; it does not request access to your entire Photos library. A Files or Photos provider may download your selection from its own cloud service under that provider’s terms. Flock Dotter copies the selected image into its local workspace without changing the original bytes. Embedded image metadata can remain in that copy.
 
-## Local storage and detection
+## Local storage
 
-The app retains one active photo and its committed markers in app-local recovery storage so you can continue after relaunching. It requests that the recovery directory be excluded from system backups; backup behavior is ultimately controlled by the operating system. Appearance and connection preferences are stored locally. Undo history and uncommitted detection-review decisions are temporary and are not restored after relaunch.
-
-If you choose **Detect birds**, the bundled experimental model runs locally. Photos are not uploaded for inference. The app checks local memory and available cache space and may create temporary compiled-model files. Detection can refuse a photo, fail, time out, miss birds or suggest false positives. Suggestions change the committed count only after your review and explicit addition.
+The app retains one active photo and its committed markers in app-local recovery storage so you can continue after relaunching. It requests that the recovery directory be excluded from system backups; backup behavior is ultimately controlled by the operating system. Appearance and connection preferences are stored locally. Undo history lasts for the current session.
 
 ## Exports and clearing
 

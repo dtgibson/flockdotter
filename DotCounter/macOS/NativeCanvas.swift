@@ -7,26 +7,13 @@ struct NativeCanvas: NSViewRepresentable {
     let appearance: MarkerAppearance
     let connections: ConnectionPresentation
     func makeNSView(context: Context) -> PointerCanvas { PointerCanvas(workspace) }
-    func updateNSView(_ view: PointerCanvas, context: Context) { view.engine.workspace = workspace; view.engine.appearance = appearance; view.engine.connections = connections; view.engine.update(size: view.bounds.size); view.needsDisplay = true; view.setAccessibilityValue(workspace.markedBirds + (workspace.selectedLabel.map { ", Marker \($0) selected" } ?? "")); view.requestReviewKeyboardFocus() }
+    func updateNSView(_ view: PointerCanvas, context: Context) { view.engine.workspace = workspace; view.engine.appearance = appearance; view.engine.connections = connections; view.engine.update(size: view.bounds.size); view.needsDisplay = true; view.setAccessibilityValue(workspace.markedBirds + (workspace.selectedLabel.map { ", Marker \($0) selected" } ?? "")) }
 }
 @MainActor final class PointerCanvas: NSView {
     let engine: CanvasEngine
     private var space = false
-    private var decisionKeys:Set<UInt16> = []
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
-    private var reviewKeyboardAvailable:Bool {
-        guard let window,window.isKeyWindow,window.attachedSheet == nil,NSApp.modalWindow == nil,!engine.workspace.exportShown else{return false}
-        return engine.workspace.birdReview?.phase == .guided
-    }
-    func requestReviewKeyboardFocus() {DispatchQueue.main.async { [weak self] in
-        guard let self,let window=self.window else{return}
-        guard self.engine.workspace.birdReview?.phase == .guided else {if window.firstResponder === self {window.makeFirstResponder(nil)};return}
-        guard self.reviewKeyboardAvailable else{return}
-        let responder=window.firstResponder
-        // Preserve another control/editor's focus; claim only the idle window/content route.
-        if responder == nil || responder === window || responder === window.contentView {window.makeFirstResponder(self)}
-    }}
     init(_ workspace: Workspace) {
         engine = CanvasEngine(workspace); super.init(frame: .zero)
         engine.invalidate = { [weak self] in self?.needsDisplay = true }
@@ -67,10 +54,6 @@ struct NativeCanvas: NSViewRepresentable {
         #endif
         engine.zoom(max(0.1, 1 + event.magnification), at: point(event)) }
     override func keyDown(with event: NSEvent) {
-        if ["f","j"].contains(event.charactersIgnoringModifiers?.lowercased() ?? ""),let r=engine.workspace.birdReview,r.phase == .guided,let target=engine.workspace.birdCurrent {
-            guard window?.firstResponder === self,reviewKeyboardAvailable,event.modifierFlags.intersection([.command,.control,.option,.shift]).isEmpty,!event.isARepeat,decisionKeys.insert(event.keyCode).inserted else{return}
-            engine.workspace.decideBird(event.charactersIgnoringModifiers=="f" ? .rejected:.accepted,target:target.id,epoch:r.epoch);return
-        }
         switch event.keyCode {
         case 49: space = true; engine.cancel()
         case 51, 117: engine.workspace.remove()
@@ -78,7 +61,7 @@ struct NativeCanvas: NSViewRepresentable {
         default: super.keyDown(with: event)
         }
     }
-    override func keyUp(with event: NSEvent) { decisionKeys.remove(event.keyCode);if event.keyCode == 49 { space = false } else { super.keyUp(with: event) } }
-    override func resignFirstResponder() -> Bool { decisionKeys.removeAll();space = false; engine.cancel(); needsDisplay = true; return super.resignFirstResponder() }
-    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); if window == nil { engine.cancel() };requestReviewKeyboardFocus() }
+    override func keyUp(with event: NSEvent) { if event.keyCode == 49 { space = false } else { super.keyUp(with: event) } }
+    override func resignFirstResponder() -> Bool { space = false; engine.cancel(); needsDisplay = true; return super.resignFirstResponder() }
+    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); if window == nil { engine.cancel() } }
 }

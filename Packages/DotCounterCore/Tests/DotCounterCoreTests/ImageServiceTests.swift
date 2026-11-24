@@ -22,20 +22,6 @@ final class ImageServiceTests: XCTestCase, @unchecked Sendable {
             XCTAssertEqual(candidate.identity.pixelHeight, orientation >= 5 ? 80 : 60)
             XCTAssertEqual(try Data(contentsOf: source), try Data(contentsOf: candidate.sourceURL))
             XCTAssertEqual(try quadrants(candidate.preview), expected[orientation-1], "preview EXIF \(orientation)")
-            let raster=try BirdSourceRaster(url:source,identity:candidate.identity)
-            let tile=try BirdDetectionPolicy.roots(width:candidate.identity.pixelWidth,height:candidate.identity.pixelHeight)[0]
-            let tensor=try raster.tensor(tile:tile,control:BirdScanControl())
-            let w=candidate.identity.pixelWidth,h=candidate.identity.pixelHeight
-            let samples=[(w/4,h/4),(3*w/4,h/4),(w/4,3*h/4),(3*w/4,3*h/4)]
-            let means:[Float]=[0.485,0.456,0.406],std:[Float]=[0.229,0.224,0.225]
-            for (i,p) in samples.enumerated() {
-                let index=(p.1*2)*800+p.0*2
-                let c=(0..<3).map{tensor[$0*640000+index].floatValue*std[$0]+means[$0]}
-                let label=c[0]>0.6 && c[1]>0.6 ? 3:(c[0]>c[1] && c[0]>c[2] ? 0:(c[1]>c[2] ? 1:2))
-                XCTAssertEqual(label,expected[orientation-1][i],"detector EXIF \(orientation), quadrant \(i)")
-            }
-            // Source-border fill is normalized black, not an unnormalized zero tensor.
-            XCTAssertEqual(tensor[799*800+799].floatValue,-means[0]/std[0],accuracy:0.00001)
             let doc = CountDocument(image: candidate.identity, markers: [])
             let output = try await ImageService.renderPNG(sourceURL: candidate.sourceURL, document: doc, directory: directory)
             let resultSource = try XCTUnwrap(CGImageSourceCreateWithURL(output as CFURL, nil))

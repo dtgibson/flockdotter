@@ -32,7 +32,7 @@ struct WindowCloseHook: NSViewRepresentable {
         override func responds(to selector: Selector!) -> Bool { super.responds(to: selector) || previous?.responds(to: selector) == true }
         override func forwardingTarget(for selector: Selector!) -> Any? { previous?.responds(to: selector) == true ? previous : super.forwardingTarget(for: selector) }
         func windowShouldClose(_ sender: NSWindow) -> Bool {
-            workspace.invalidateRenumber(); workspace.invalidateBirdDetection()
+            workspace.invalidateRenumber()
             if allowed { allowed = false; return previous?.windowShouldClose?(sender) ?? true }
             guard !flushing else { return false }
             flushing = true

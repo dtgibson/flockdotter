@@ -51,7 +51,7 @@ import DotCounterCore
         XCTFail("Expected asynchronous boundary was not reached")
     }
 
-    func testAppearancePreservesCountRecoveryHistoryReviewViewportAndNativeCanvas() async throws {
+    func testAppearancePreservesCountRecoveryHistoryViewportAndNativeCanvas() async throws {
         let w = try await workspace()
         w.tap(CGPoint(x: 0.2, y: 0.4), hit: nil); w.tap(CGPoint(x: 0.6, y: 0.4), hit: nil)
         w.tap(CGPoint(x: 0.8, y: 0.7), hit: nil); w.undo()
@@ -61,12 +61,6 @@ import DotCounterCore
         let baseline = w.snapshot?.baselineDigest, epoch = w.lifecycleEpoch
         let recovery = try Data(contentsOf: root.appendingPathComponent("recovery/current.json"))
         let sourceHash = try ImageService.hashFile(try XCTUnwrap(w.candidate).sourceURL)
-        let key = BirdDetectionKey(workspace: try XCTUnwrap(w.snapshot).workspaceID, source: try XCTUnwrap(w.snapshot).sourceToken,
-                                   generation: w.birdGeneration, image: before.image, revision: revision)
-        w.birdKey = key; w.birdActivity = .review
-        w.birdReview = try BirdReview(key: key, suggestions: [BirdSuggestion(id: "pending", x: 0.8, y: 0.8, width: 2, height: 2, score: 0.5)], eligible: true)
-        // Avoid guided targeting when testing presentation-only updates.
-        w.editBirdReview { $0.skipAll() }
         let (window, controller) = try host(WorkspaceView(workspace: w)); defer { window.isHidden = true }
         try await Task.sleep(for: .milliseconds(250))
         let canvas = try XCTUnwrap(findCanvas(controller.view))
@@ -83,7 +77,6 @@ import DotCounterCore
                 XCTAssertEqual(w.snapshot?.baselineDigest, baseline); XCTAssertEqual(w.lifecycleEpoch, epoch)
                 XCTAssertEqual(w.selectedLabel, 1); XCTAssertEqual(w.mode, .edit)
                 XCTAssertTrue(w.history.canUndo); XCTAssertTrue(w.history.canRedo)
-                XCTAssertEqual(w.birdKey, key); XCTAssertEqual(w.birdActivity, .review)
             }
         }
         w.setMarkerStyle(.plainDots); w.setMarkerColor(.coral)

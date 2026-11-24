@@ -1,2 +1,0 @@
-DotCounter/Resources/BirdPrototype/**/*.bin filter=lfs diff=lfs merge=lfs -text
-*.mlmodel binary

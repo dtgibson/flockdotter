@@ -219,7 +219,7 @@ private final class RecoveryWorker: @unchecked Sendable {
         try requireRegularFile(manifestURL)
         let size = try manifestURL.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard size <= ResourceLimits.maxJSONBytes else { throw RecoveryError.invalid("Recovery data is too large to read safely.") }
-        let data = try Data(contentsOf: manifestURL)
+        let data = try BoundedFileReader.read(manifestURL, maximumBytes: ResourceLimits.maxJSONBytes)
         try JSONValidation.validateSyntax(data)
         let snapshot = try JSONDecoder().decode(RecoverySnapshot.self, from: data)
         try snapshot.validate()

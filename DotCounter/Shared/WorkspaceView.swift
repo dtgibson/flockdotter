@@ -49,7 +49,6 @@ struct WorkspaceView: View {
         let clearTarget = workspace.clearTarget
         workspaceSurface
         .preferredColorScheme(.light)
-        .onChange(of:workspace.exportShown){_,shown in if shown{workspace.invalidateBirdDetection(message:"Exports include committed markers only.")}}
         .photosPicker(isPresented: $showPhotos, selection: $photoItem, matching: .images, preferredItemEncoding: .current)
         .task { await workspace.startup() }
         .onChange(of: photoItem) { _, item in
@@ -92,7 +91,7 @@ struct WorkspaceView: View {
         }
         .sheet(isPresented: $workspace.showPairing) { pairingView(epoch: epoch) }
         .sheet(isPresented: $markerAppearance) { MarkerAppearanceView(workspace: workspace) }
-        .sheet(isPresented: $help) { WorkspaceHelp(enabled: workspace.birdPrototypeEnabled) { help = false } }
+        .sheet(isPresented: $help) { WorkspaceHelp { help = false } }
     }
     @ViewBuilder private var workspaceSurface: some View {
         #if os(iOS)
@@ -137,7 +136,7 @@ struct WorkspaceView: View {
     }
     private func adaptiveCanvas(size: CGSize, folded: Bool) -> some View {
         let minimumCanvas: CGFloat = largeControls ? 110 : 160
-        let hasSupplement = workspace.renumberProgress || workspace.renumberFailure || workspace.selectedLabel != nil || workspace.birdReview != nil || workspace.birdKey != nil || !workspace.birdMessage.isEmpty || workspace.clearFailed || workspace.recoveryStale
+        let hasSupplement = workspace.renumberProgress || workspace.renumberFailure || workspace.selectedLabel != nil || workspace.clearFailed || workspace.recoveryStale
         let anchorWidth = max(0, size.width - 24)
         // Each float has 12pt safe-edge clearance and a 12pt gap to the
         // unobstructed canvas. Use this same budget for sizing and fallback.
@@ -263,9 +262,6 @@ struct WorkspaceView: View {
         VStack(alignment: .leading, spacing: 8) {
             renumberStatus
             selectionControls
-            if !workspace.clearing && (workspace.birdReview != nil || workspace.birdKey != nil || !workspace.birdMessage.isEmpty) {
-                BirdReviewControls(workspace: workspace)
-            }
             if workspace.clearFailed {
                 VStack(alignment: .leading, spacing: 8) { clearFailureText; clearFailureActions }
                     .padding(12).foregroundStyle(Design.warning).background(Design.warningSurface)
@@ -301,7 +297,7 @@ struct WorkspaceView: View {
     private var navigationDisabled: Bool { workspace.candidate == nil || workspace.busy || workspace.clearing || workspace.exportShown }
     private var nativeExport: some View {
         Button { workspace.showExport() } label: { Label("Export", systemImage: "square.and.arrow.up") }
-            .tint(workspace.birdReview == nil ? Design.accent : Design.ink)
+            .tint(Design.accent)
             .disabled(navigationDisabled)
     }
     private var undoButton: some View {
@@ -331,11 +327,6 @@ struct WorkspaceView: View {
         }.accessibilityIdentifier("markerAppearance")
             .disabled(workspace.clearing || workspace.committing || workspace.busy || workspace.exportShown)
         sortMenu
-        if workspace.birdPrototypeEnabled {
-            Button { workspace.startBirdDetection() } label: { Label("Detect birds", systemImage: "bird") }
-                .disabled(!workspace.canDetectBirds).accessibilityIdentifier("detectBirds")
-            Text("Local prototype · Suggestions need review")
-        }
         Button { help = true } label: { Label("Help", systemImage: "questionmark.circle") }
     }
     #endif
@@ -404,9 +395,6 @@ struct WorkspaceView: View {
                         }.padding(24).background(Design.surface, in: RoundedRectangle(cornerRadius: 12)).shadow(color: Design.navy.opacity(0.13), radius: 16)
                     }
                 }.frame(maxWidth: .infinity, maxHeight: .infinity).clipped()
-                if !workspace.clearing && (workspace.birdReview != nil || workspace.birdKey != nil || !workspace.birdMessage.isEmpty) {
-                    ScrollView {BirdReviewControls(workspace:workspace)}.frame(maxHeight:geometry.size.height * (largeControls ? 0.45:0.38))
-                }
                 if largeControls {
                     InstrumentGlassContainer {
                     ScrollView {
@@ -506,7 +494,7 @@ struct WorkspaceView: View {
     }
     @ViewBuilder private var sourceActions: some View {
         openMenu
-        Button { workspace.showExport() } label: { Label("Export", systemImage: "square.and.arrow.up").fixedSize() }.buttonStyle(InstrumentButtonStyle(primary: workspace.birdReview == nil)).frame(minHeight: 44).disabled(workspace.candidate == nil || workspace.busy || workspace.clearing || workspace.exportShown)
+        Button { workspace.showExport() } label: { Label("Export", systemImage: "square.and.arrow.up").fixedSize() }.buttonStyle(InstrumentButtonStyle(primary: true)).frame(minHeight: 44).disabled(workspace.candidate == nil || workspace.busy || workspace.clearing || workspace.exportShown)
     }
     private var openMenu: some View { openMenu(title: "Open") }
     private func openMenu(title: String) -> some View {
@@ -522,13 +510,9 @@ struct WorkspaceView: View {
         } label: { Label(title, systemImage: "folder").fixedSize() }.frame(minHeight: 44).disabled(workspace.clearing || workspace.committing)
     }
     private func toolArea(width: CGFloat) -> some View {
-        Group {
-            if width >= 1000 && !largeControls {
-                HStack(spacing: 16) { controls(width: width); birdEntry; Spacer(minLength: 0) }
-            } else {
-                VStack(alignment: .leading, spacing: 8) { controls(width: width); birdEntry }
-            }
-        }.padding(.horizontal, 16).padding(.bottom, 12)
+        controls(width: width)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16).padding(.bottom, 12)
     }
     private func controls(width: CGFloat) -> some View {
         Group {
@@ -549,14 +533,6 @@ struct WorkspaceView: View {
         #else
         NativeModePicker(workspace: workspace).frame(width: 176, height: 44).accessibilityLabel("Count or Edit mode")
         #endif
-    }
-    @ViewBuilder private var birdEntry:some View {
-        if workspace.birdPrototypeEnabled {
-            HStack(spacing:12) {
-                Button("Detect birds"){workspace.startBirdDetection()}.frame(minHeight:44).disabled(!workspace.canDetectBirds).accessibilityIdentifier("detectBirds")
-                Text("Local prototype · Suggestions need review").font(Design.font(11)).foregroundStyle(Design.secondary)
-            }.frame(maxWidth:.infinity,alignment:.leading)
-        }
     }
     private var historyButtons: some View {
         HStack(spacing: 4) {
@@ -719,21 +695,21 @@ struct WorkspaceView: View {
 }
 
 struct WorkspaceHelp: View {
-    let enabled: Bool
     let done: () -> Void
-    // Static text only. Reading attribution must never initialize the detector.
-    private static let notices: String? = {
-        #if DEBUG || OWNER_BETA || PUBLIC_STORE
-        guard let url = Bundle.main.url(forResource: "Third-party-notices", withExtension: "txt", subdirectory: "BirdPrototype") else { return nil }
-        return try? String(contentsOf: url, encoding: .utf8)
-        #else
-        return nil
-        #endif
-    }()
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        section("Count and navigate", ["In Count mode, tap each bird or other object once. On Mac, click each one. Every mark updates the total. Drag to pan, pinch to zoom, or choose Fit to see the whole photo."])
+                        DisclosureGroup {
+                            paragraphs(["Scroll to pan. Pinch or Option-scroll to zoom. Space-drag and middle-button drag pan in either mode. Use ⌘+ and ⌘− to zoom, and ⌘0 to fit."])
+                        } label: { Text("Mac controls").frame(minHeight: 44) }
+                    }
+                    section("Edit and renumber", ["In Edit, select a marker, then drag it to move or choose Remove. Releasing outside the image cancels a move. On Mac, Delete removes the selection and Escape cancels a move.", "Renumber changes labels only. New markers append to the count. Undo and Redo restore edits."])
+                    section("Trace your count", ["Nearest Neighbor starts at the topmost dot, then visits the nearest unvisited dot until every committed dot is numbered. It keeps the total and dot positions. One Undo restores the previous order.", "Connections follow the current labels. Adding, removing or moving a dot updates the lines without running Nearest Neighbor again. Run it again whenever you want a new nearby-dot sequence. Long jumps and crossings can occur.", "Show connections is remembered on this installation. Undo changes the order without hiding connections. With Plain dots, select a dot to read its full number below the photo.", "Annotated PNG captures connections as shown or hidden when Export opens. Numbered dots can clip at photo edges. Use Numbered pins for complete edge labels."])
+                    section("Make your marks easier to see", ["Open Marker appearance beside Help. Choose Numbered pins, Plain dots or Numbered dots, then choose a named color. Try a different color when marks blend into the photo.", "Plain dots hide on-photo numbers. Select a dot to read its full number below the photo. Zoom in to separate overlapping marks. Numbered dots keep numbers inside centered circles; longer numbers need larger circles. Badges and numbers can clip at photo edges. Use Numbered pins for complete edge labels.", "Reset to defaults restores Numbered dots and Original. Choices stay on this app installation, including after you clear a workspace. JSON does not carry appearance.", "Annotated PNG records the appearance and count captured when you open Export. Plain dots omit on-photo sequence numbers."])
+                    section("Keep or clear a count", ["Recovery keeps one current photo and count on this device. Export JSON with the unchanged original photo to keep an editable count. Reopen Count pairs that JSON with its exact original. Export an annotated image to keep a visual record.", "Open → Clear workspace removes this photo, count and local recovery copy. It always asks first and can’t be undone. Originals and existing exports stay untouched. After clearing succeeds, the app stays empty when reopened until you open another photo or count."])
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Privacy, source and licenses").font(Design.font(17, bold: true)).accessibilityAddTraits(.isHeader)
                         NavigationLink("Privacy policy") { BundledHelpDocument(title: "Privacy policy", resource: "privacy", extension: "md") }.frame(minHeight: 44)
@@ -745,52 +721,6 @@ struct WorkspaceHelp: View {
                         NavigationLink("IBM Plex Mono license") { BundledHelpDocument(title: "IBM Plex Mono license", resource: "OFL-IBM-Plex-Mono", extension: "txt") }.frame(minHeight: 44)
                         Link("Privacy policy online", destination: URL(string: "https://github.com/dtgibson/flockdotter/blob/main/docs/public/privacy.md")!).frame(minHeight: 44)
                     }
-                    if enabled {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Bird detection · Experimental").font(Design.font(17, bold: true)).accessibilityAddTraits(.isHeader)
-                            Text("A first pass you review.\nYou choose what joins the count.").font(Design.font(20, bold: true))
-                            Text("Detect birds suggests locations in your photo. Your count stays unchanged until you review and add a batch.")
-                            Text("It can miss birds or suggest false or duplicate locations. No suggestions doesn’t mean there are no birds.")
-                            Text("Everything runs on this device. No photo upload, internet connection, account or API key is needed.").padding(16).frame(maxWidth: .infinity, alignment: .leading).background(Design.tint)
-                            Text("This prototype supports small photos. Ordinary full-resolution phone photos are generally refused. If a scan can’t finish within its work, time or memory limits, it stops without adding any markers. You can always count manually.")
-                            DisclosureGroup {
-                                paragraphs([
-                                    "Suggestions start pending. Accept birds, reject false suggestions, or skip the remaining suggestions. Skipped suggestions aren’t reviewed.",
-                                    "Check the whole photo and optionally mark missed birds. Add the accepted suggestions and your missed-bird marks together when you’re ready. Existing markers stay in place.",
-                                    "You can correct added markers normally. Undo removes the entire added batch; Redo restores it.",
-                                    "The detector can miss birds and suggest false or duplicate locations. No suggestions doesn’t mean there are no birds. Review the photo as well as the suggestions."
-                                ])
-                            } label: { Text("Review and add suggestions").frame(minHeight: 44) }
-                            DisclosureGroup {
-                                paragraphs([
-                                    "Flock Dotter uses a modified CountGD model converted to Core ML, Apple’s on-device model format. It runs on the CPU, the device’s general-purpose processor, using FP32 (32-bit floating-point calculations) and a fixed “bird” prompt.",
-                                    "The app scans overlapping crops of your photo and maps predicted locations back onto the original image. Each part of an overlap belongs to one crop, which reduces duplicate acceptance between crops. It doesn’t guarantee unique or correct suggestions.",
-                                    "This is experimental bird counting, not species identification. There is no established accuracy or speed guarantee."
-                                ])
-                            } label: { Text("How detection works").frame(minHeight: 44) }
-                            if let notices = Self.notices {
-                                DisclosureGroup {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        Text("Bundled detector attribution and license text. Available offline.").foregroundStyle(Design.secondary)
-                                        Text(notices).font(Design.font(12)).textSelection(.enabled)
-                                    }.padding(.top, 12)
-                                } label: { Text("Third-party notices").frame(minHeight: 44) }
-                            }
-                        }
-                    } else {
-                        section("Bird detection", ["Bird detection is unavailable in this build. You can count birds manually using the controls below."])
-                    }
-                    VStack(alignment: .leading, spacing: 16) {
-                        section("Count and navigate", ["In Count, tap or click each bird to place a marker. Drag to pan without counting, even when starting over a marker. Pinch to zoom. Use Fit to see the whole photo."])
-                        DisclosureGroup {
-                            paragraphs(["Scroll to pan. Pinch or Option-scroll to zoom. Space-drag and middle-button drag pan in either mode. Use ⌘+ and ⌘− to zoom, and ⌘0 to fit."])
-                        } label: { Text("Mac controls").frame(minHeight: 44) }
-                    }
-                    section("Edit and renumber", ["In Edit, select a marker, then drag it to move or choose Remove. Releasing outside the image cancels a move. On Mac, Delete removes the selection and Escape cancels a move.", "Renumber changes labels only. New markers append to the count. Undo and Redo restore edits."])
-                    section("Trace your count", ["Nearest Neighbor starts at the topmost dot, then visits the nearest unvisited dot until every committed dot is numbered. It keeps the total and dot positions. One Undo restores the previous order.", "Connections follow the current labels. Adding, removing or moving a dot updates the lines without running Nearest Neighbor again. Run it again whenever you want a new nearby-dot sequence. Long jumps and crossings can occur.", "Show connections is remembered on this installation. Undo changes the order without hiding connections. With Plain dots, select a dot to read its full number below the photo.", "Annotated PNG captures connections as shown or hidden when Export opens. Numbered dots can clip at photo edges. Use Numbered pins for complete edge labels."])
-                    section("Make your marks easier to see", ["Open Marker appearance beside Help. Choose Numbered pins, Plain dots or Numbered dots, then choose a named color. Try a different color when marks blend into the photo.", "Plain dots hide on-photo numbers. Select a dot to read its full number below the photo. Zoom in to separate overlapping marks. Numbered dots keep numbers inside centered circles; longer numbers need larger circles. Badges and numbers can clip at photo edges. Use Numbered pins for complete edge labels.", "Reset to defaults restores Numbered dots and Original. Choices stay on this app installation, including after you clear a workspace. JSON does not carry appearance.", "Annotated PNG records the appearance and count captured when you open Export. Plain dots omit on-photo sequence numbers."])
-                    section("Keep or clear a count", ["Recovery keeps one current photo and count on this device. Export JSON with the unchanged original photo to keep an editable count. Reopen Count pairs that JSON with its exact original. Export an annotated image to keep a visual record.", "Open → Clear workspace removes this photo, count and local recovery copy. It always asks first and can’t be undone. Originals and existing exports stay untouched. After clearing succeeds, the app stays empty when reopened until you open another photo or count."])
-                    Text("Help is available with or without a photo. Opening it doesn’t run detection.").font(Design.font(12)).foregroundStyle(Design.secondary)
                 }.font(Design.font(15)).lineSpacing(5).frame(maxWidth: 590, alignment: .leading).padding(24)
             }.background(Design.surface).accessibilityIdentifier("helpContents").navigationTitle("Help")
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button(action: done) { Text("Done").frame(minHeight: 44) } } }
